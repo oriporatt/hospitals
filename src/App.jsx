@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import './App.css';
-
+import Accordion from "./accordion";
 function getDistanceNM(lat1, lon1, lat2, lon2) {
   const toRad = (val) => (val * Math.PI) / 180;
   const R = 3440.065; // nautical miles
@@ -15,12 +14,37 @@ function getDistanceNM(lat1, lon1, lat2, lon2) {
 const hospitals = [
   { name: "Soroka", lat: 31.258281971116965, lon: 34.80028913558231 },
   { name: "Tel-Hashomer", lat: 32.043345439740804, lon: 34.84204683608886 },
+  { name: "Ein-Kerem", lat: 31.76447466383605, lon: 35.14723853129529 },
+  { name: "Ichilov", lat: 32.07987031772444, lon: 34.789583962071234 },
+  { name: "Rambam", lat: 32.83544415349387, lon: 34.98589504575949},
+  { name: "Kaplan", lat: 31.87255050681198, lon: 34.811541692844486},
+  { name: "Beilinson", lat: 32.086786809182804, lon: 34.86508687629207},
+
 ];
+
 
 export default function App() {
   const [location, setLocation] = useState(null);
-  const [speed, setSpeed] = useState(130); // knots
+  const [speed, setSpeed] = useState(120); // knots
+  const [delay, setDelay] = useState(1); // delay in minutes
+  const [hospitalsArray, setHospitalsArray] = useState([]); // delay in minutes
+
+  const [lastUpdated, setLastUpdated] = useState(null);
+  const [, forceUpdate] = useState(0);
+
+  const locationMarkerRef = useRef(null);
   const mapRef = useRef(null);
+  const mapInstanceRef = useRef(null);
+  const markersRef = useRef([]);
+  const linesRef = useRef([]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      forceUpdate((n) => n + 1); // triggers re-render
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
 
   useEffect(() => {
     const getLocation = () => {
@@ -28,6 +52,8 @@ export default function App() {
         (pos) => {
           const { latitude, longitude } = pos.coords;
           setLocation({ lat: latitude, lon: longitude });
+          setLastUpdated(Date.now()); // <-- Add this line
+
         },
         (err) => console.error(err),
         { enableHighAccuracy: true }
@@ -35,59 +61,74 @@ export default function App() {
     };
 
     getLocation();
-    const interval = setInterval(getLocation, 5000);
+    const interval = setInterval(getLocation, 10000);
     return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
     if (
+      !window.google?.maps?.Map ||
+      !window.google?.maps?.marker?.AdvancedMarkerElement
+    ) {
+      console.warn("Google Maps still loading...");
+      return;
+    }
+
+    if (
       location &&
       window.google &&
+      window.google.maps &&
       mapRef.current &&
       mapRef.current instanceof HTMLElement
-    ) {
-      const map = new window.google.maps.Map(mapRef.current, {
-        center: { lat: location.lat, lng: location.lon },
-        zoom: 10,
-      });
+    ) 
+    {
+      if (!window.google.maps.Map) {
+        console.warn("Map is not yet ready.");
+        return;
+      }
+      // Initialize the map once
+      if (!mapInstanceRef.current) {
+        mapInstanceRef.current = new window.google.maps.Map(mapRef.current, {
+          center: { lat: location.lat, lng: location.lon },
+          zoom: 10,
+          mapTypeId: 'satellite', // 👈 ADD THIS LINE
+          mapId: '5036d76f53ca6c6a'
+        });
   
-      // Current location marker
-      new window.google.maps.Marker({
-        position: { lat: location.lat, lng: location.lon },
-        map,
-        title: "Your Location",
-        icon: {
-          path: window.google.maps.SymbolPath.CIRCLE,
-          scale: 6,
-          fillColor: "#4285F4",
-          fillOpacity: 1,
-          strokeWeight: 1,
-          strokeColor: "#ffffff",
-        },
-      });
+        // Add hospital markers (only once)
+        hospitals.forEach((h) => {
+          // Create a custom label div
+          const labelDiv = document.createElement('div');
+          labelDiv.innerText = h.name;
+          labelDiv.style.padding = '4px 6px';
+          labelDiv.style.backgroundColor = '#fff';
+          labelDiv.style.border = '1px solid #000';
+          labelDiv.style.borderRadius = '6px';
+          labelDiv.style.fontWeight = 'bold';
+          labelDiv.style.fontSize = '14px';
+          labelDiv.style.color = 'black';
+          labelDiv.style.whiteSpace = 'nowrap';
+          labelDiv.style.boxShadow = '0 2px 6px rgba(0,0,0,0.3)';
+        
+          const marker = new window.google.maps.marker.AdvancedMarkerElement({
+            map: mapInstanceRef.current,
+            position: { lat: h.lat, lng: h.lon },
+            title: h.name,
+            content: labelDiv,
+          });
+        
+          markersRef.current.push(marker);
+        });
+        
+      }
   
-      // Hospital markers and lines
+      // Remove old lines if needed
+      linesRef.current.forEach((line) => line.setMap(null));
+      linesRef.current = [];
+  
+      // Add polyline to each hospital
       hospitals.forEach((h) => {
-        // Hospital marker with "H"
-      // Hospital marker with "H" label and name as tooltip
-      new window.google.maps.Marker({
-        position: { lat: h.lat, lng: h.lon },
-        map,
-        title: h.name, // shows as tooltip on hover
-        label: {
-          text: h.name,
-          color: "black",
-          fontWeight: "bold",
-          fontSize: "14px",
-        },
-        icon: {
-          url: "https://maps.google.com/mapfiles/ms/icons/red-dot.png", // classic pin icon
-        },
-      });
-
-  
-        // Draw polyline from current location to hospital
-        new window.google.maps.Polyline({
+        const line = new window.google.maps.Polyline({
           path: [
             { lat: location.lat, lng: location.lon },
             { lat: h.lat, lng: h.lon },
@@ -96,51 +137,121 @@ export default function App() {
           strokeColor: "#00C853",
           strokeOpacity: 1.0,
           strokeWeight: 2,
-          map,
+          map: mapInstanceRef.current,
         });
+        linesRef.current.push(line);
       });
+  
+      // Update the current location marker
+      if (!locationMarkerRef.current) {
+        const markerDiv = document.createElement('div');
+        markerDiv.style.width = '12px';
+        markerDiv.style.height = '12px';
+        markerDiv.style.borderRadius = '50%';
+        markerDiv.style.backgroundColor = '#4285F4';
+        markerDiv.style.border = '2px solid #ffffff';
+        markerDiv.style.boxShadow = '0 0 4px rgba(0, 0, 0, 0.3)';
+      
+        locationMarkerRef.current = new window.google.maps.marker.AdvancedMarkerElement({
+          map: mapInstanceRef.current,
+          title: "Your Location",
+          content: markerDiv,
+        });
+      }
+    
+      // Just update the marker’s position
+      locationMarkerRef.current.position=
+      {
+        lat: location.lat,
+        lng: location.lon,
+      };
+      
     }
+    setHospitalsArray(renderHospitals())
   }, [location]);
   
   
+  
 
-  const renderHospitals = () => {
+  function renderHospitals () {
     if (!location) return <p>Fetching current location...</p>;
 
-    return hospitals.map((h, i) => {
+    let hospitalArray=[]
+    hospitals.map((h, i) => {
       const distance = getDistanceNM(location.lat, location.lon, h.lat, h.lon);
-      const etaMin = (distance / speed) * 60;
+      const etaMin = (distance / speed) * 60 +delay;
       const minutes = Math.floor(etaMin);
       const seconds = Math.round((etaMin - minutes) * 60);
-
-      return (
-        <div key={i} style={{ marginBottom: 10 }}>
-          <h3>{h.name}</h3>
-          <p>Distance: {distance.toFixed(2)} NM</p>
-          <p>ETA: {minutes} min {seconds} sec</p>
-        </div>
-      );
+      const thisRow = {
+        hospital: h.name,
+        distance: distance,
+        eta: 'ETA: '+  minutes+ ' min. '+ seconds +' sec.'
+      }
+      hospitalArray.push(thisRow)
+     
     });
+
+    return hospitalArray.sort((a,b)=>a.distance-b.distance);
   };
 
+  const getSecondsAgo = () => {
+    if (!lastUpdated) return "";
+    const seconds = Math.floor((Date.now() - lastUpdated) / 1000);
+    return `Last updated: ${seconds} sec ago`;
+  };
+
+  
+  
   return (
-    <div style={{ padding: 20 }}>
-      <h1>Flight Tracker</h1>
-      <label>
-        Speed (knots):
-        <input
-          type="number"
-          value={speed}
-          onChange={(e) => setSpeed(parseFloat(e.target.value) || 0)}
-          style={{ marginLeft: 10 }}
-        />
-      </label>
+    <div >
+      <h1 className="title-main-app">Time to Hospital</h1>
 
-      <div style={{ marginTop: 20 }}>{renderHospitals()}</div>
+      <Accordion title="Calc Settings">
+        <div className="settings">
+          <label>
+            Speed (knots):
+            <input
+              type="number"
+              value={speed}
+              onChange={(e) => setSpeed(parseFloat(e.target.value) || 0)}
 
-      <div style={{ height: 400, marginTop: 20 }}>
-        <div ref={mapRef} style={{ width: "100%", height: "100%" }} />
+            />
+          </label>
+          <label >
+            Extra Time (min):
+            <input
+              type="number"
+              value={delay}
+              onChange={(e) => setDelay(parseFloat(e.target.value) || 0)}
+            />
+          </label>
+        </div>
+      </Accordion>
+
+
+      <div className="last-update">
+        <p>{getSecondsAgo()}</p>
+      </div>
+
+      {hospitalsArray?.length>0 && (
+        <ul className="hospital-list">
+          {hospitalsArray.map((h, index) => (
+            <li key={index}>
+              <p className="hospital-name">{h.hospital}</p>
+              <p className="eta">{h.eta}</p>
+              <p className="distance">{h.distance.toFixed(2)} NM</p>
+
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <div className="map-hospitals">
+        <div ref={mapRef} className="google-map" />
       </div>
     </div>
   );
 }
+
+
+//npm run deploy

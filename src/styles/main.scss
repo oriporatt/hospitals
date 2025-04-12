@@ -1,0 +1,80 @@
+@use './Accordion';
+
+
+// src/styles/main.scss
+
+body {
+    font-family: 'Inter', 'Segoe UI', 'Roboto', 'Helvetica Neue', sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    color: #222;
+    background-color: #fafafa;
+    margin: 0;
+    padding: 0;
+  }
+
+
+  
+
+.settings{
+    display: grid;
+    gap: 10px;
+    label{
+        display: grid;
+        grid-template-columns: 130px auto;
+        input{
+            width: 50px;
+            height: 18px;
+        }
+    }
+}
+
+.title-main-app{
+    text-align: center;
+}
+
+.last-update{
+    margin-left: 1rem;
+}
+
+.hospital-list{
+    display: grid;
+    margin: 0;
+    padding: 0;
+    margin-left: 1rem;
+    margin-right: 1rem;
+
+    li{
+        &:first-child{
+            border-top: 1px solid lightgray;
+
+        }
+        display: grid;
+        grid-template-columns: 2fr 3fr 1.5fr;
+        border-bottom: 1px solid lightgray;
+
+        p{
+            margin: 0;
+        }
+        .hospital-name{
+            font-weight: 700;
+        }
+        .eta{
+            font-weight: 700;
+            color: blue;
+        }
+
+    }
+
+
+}
+
+.map-hospitals{
+    padding: 1rem;
+    height: calc(60vh); // or set a fixed height if you prefer
+    box-sizing: border-box;
+    .google-map{
+        height: 100%;
+        width: 100%;
+    }
+}

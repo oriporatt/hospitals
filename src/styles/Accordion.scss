@@ -1,0 +1,33 @@
+.accordion {
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    overflow: hidden;
+    background: #fff;
+  
+    .accordion-header {
+      background-color: #f5f5f5;
+      padding: 12px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      font-weight: bold;
+  
+      h4 {
+        margin: 0;
+      }
+    }
+  
+    .accordion-content {
+      padding: 12px 16px;
+      border-top: 1px solid #eee;
+      animation: fadeIn 0.3s ease;
+    }
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+  
