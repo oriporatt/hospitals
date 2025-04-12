@@ -28,6 +28,9 @@ export default function App() {
   const [speed, setSpeed] = useState(120); // knots
   const [delay, setDelay] = useState(1); // delay in minutes
   const [hospitalsArray, setHospitalsArray] = useState([]); // delay in minutes
+  const [loadingMap, setloadingMap] = useState(true); // delay in minutes
+
+
 
   const [lastUpdated, setLastUpdated] = useState(null);
   const [, forceUpdate] = useState(0);
@@ -45,6 +48,9 @@ export default function App() {
     return () => clearInterval(interval);
   }, []);
 
+  useEffect(()=>{
+    setHospitalsArray(renderHospitals())
+  }, [location]);
 
   useEffect(() => {
     const getLocation = () => {
@@ -71,9 +77,11 @@ export default function App() {
       !window.google?.maps?.marker?.AdvancedMarkerElement
     ) {
       console.warn("Google Maps still loading...");
+      setloadingMap(true)
+
       return;
     }
-
+    setloadingMap(false)
     if (
       location &&
       window.google &&
@@ -167,7 +175,7 @@ export default function App() {
       };
       
     }
-    setHospitalsArray(renderHospitals())
+    
   }, [location]);
   
   
@@ -200,7 +208,6 @@ export default function App() {
     return `Last updated: ${seconds} sec ago`;
   };
 
-  
   
   return (
     <div >
@@ -246,6 +253,7 @@ export default function App() {
         </ul>
       )}
 
+      {loadingMap&&<h2>Loading map..</h2>}
       <div className="map-hospitals">
         <div ref={mapRef} className="google-map" />
       </div>
