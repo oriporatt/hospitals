@@ -388,13 +388,14 @@ export default function App() {
       <div className="location-box">
         <div className="auto-location-box" >
           <button className="btn-location" onClick={() => setMode("gps")} disabled={mode === "gps"}>
-            Use My Location
+            Live Location
           </button>
-          <p>Use live location, update every 10 sec</p>
+          <p>Using device live location</p>
+          <p>Update every 10 sec</p>
         </div>
         <div className="search-container">
           <button className="btn-location" onClick={() => setMode("manual")} disabled={mode === "manual"}>
-            Set Location Manually
+            Search / Select target from map
           </button>
           <input
             ref={inputRef}
@@ -402,6 +403,7 @@ export default function App() {
             placeholder="Search a location..."
             className="search-box"
           />
+          <p>No live location</p>
         </div>
       </div>
 
