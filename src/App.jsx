@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import Accordion from "./accordion";
+
+
 function getDistanceNM(lat1, lon1, lat2, lon2) {
   const toRad = (val) => (val * Math.PI) / 180;
   const R = 3440.065; // nautical miles
@@ -29,15 +31,20 @@ const hospitals = [
 ];
 
 
+
+
+
 export default function App() {
   const [location, setLocation] = useState(null);
+  const [lastLocation, setLastLocation] = useState(null);
+
   const [speed, setSpeed] = useState(120); // knots
   const [delay, setDelay] = useState(1); // delay in minutes
   const [hospitalsArray, setHospitalsArray] = useState([]); 
   const [loadingMap, setloadingMap] = useState(true); 
   const [filterGeo, setFilterGeo] = useState('all'); 
 
-
+  
   const [lastUpdated, setLastUpdated] = useState(null);
   const [, forceUpdate] = useState(0);
 
@@ -68,6 +75,7 @@ export default function App() {
         (pos) => {
           const { latitude, longitude } = pos.coords;
           setLocation({ lat: latitude, lon: longitude });
+          setLastLocation({ lat: latitude, lon: longitude });
           setLastUpdated(Date.now());
         },
         (err) => console.error(err),
@@ -89,7 +97,9 @@ export default function App() {
         const lat = e.latLng.lat();
         const lon = e.latLng.lng();
         setLocation({ lat, lon });
+
         mapInstanceRef.current.setCenter({ lat, lng: lon });
+        
       }
     };
   
@@ -103,7 +113,9 @@ export default function App() {
   }, [mode]);
 
 
+
   
+
   useEffect(() => {
     if (!mapInstanceRef.current || !location) return;
     mapInstanceRef.current.panTo({ lat: location.lat, lng: location.lon });
@@ -154,6 +166,7 @@ export default function App() {
               setLocation({ lat: lat, lon: lon });
               setLastUpdated(Date.now()); // ✅ Reset the timer
 
+              
               if (mode==='gps'){
                 setMode("manual")              
               }
@@ -272,6 +285,26 @@ export default function App() {
      
     });
 
+    if (location && lastLocation && mode==='manual' ){
+      const distance2 = getDistanceNM(location.lat, location.lon, lastLocation.lat, lastLocation.lon);
+      const etaMin2 = (distance2 / speed) * 60 + delay;
+      const minutes2 = Math.floor(etaMin2);
+      const seconds2 = Math.round((etaMin2 - minutes2) * 60);
+    
+      const newRow= {
+        hospital: "📍 Current Location",
+        distance: distance2,
+        eta: `ETA: ${minutes2} min. ${seconds2} sec.`,
+        superH: false,
+        geoSep: 'B',
+        lat: lastLocation.lat,
+        lon: lastLocation.lon
+      };
+      hospitalArray.push(newRow)
+      
+    }
+
+
     return hospitalArray.sort((a,b)=>a.distance-b.distance);
   };
 
@@ -299,7 +332,9 @@ export default function App() {
     return `Last updated: ${seconds} sec ago`;
   };
 
-  
+
+
+
   return (
     <div >
       <h1 className="title-main-app">Time to Hospital</h1>
