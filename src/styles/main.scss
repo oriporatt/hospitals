@@ -96,8 +96,9 @@ body {
 
   
   .location-box{
-    margin: 1rem ; 
-    display: flex;
+    margin: 8px ; 
+    display: grid;
+    grid-template-columns: 1fr 1fr;
     box-shadow: 0 0 .880517px rgba(0,0,0,.029),0 0 2.29197px rgba(0,0,0,.03),0 0 5.52px rgba(0,0,0,.054),0 0 11px rgba(0,0,0,.09);  
     justify-content: center; /* center as a group */
     p{
@@ -106,30 +107,35 @@ body {
         line-height: 1;
         margin: 0;
         text-align: center;
+        justify-self: center;
     }
     .auto-location-box{
-        min-height: 100px;
+        margin: 8px;
+        min-height: 120px;
         align-self: start;
         display: grid;
         gap:1rem;
-        margin: 1rem;
         border: 2px dashed lightgray;
-        padding: 1rem;
+        padding: 8px;
 
     }
     
     .search-container{
         display: grid;
+        min-height: 120px;
+        margin: 8px;
         grid-template-rows:  auto auto;
         gap:1rem;
-        margin: 1rem;
         border: 2px dashed lightgray;
-        padding: 1rem;
+        padding: 8px;
         input{
-            height: 20px;
+            height: 24px;
+            width: 80%;
+            justify-self:center;
             border-radius: 8px;
             border: 1px solid lightgray;
             padding-left: 8px;
+            text-align: center;
         }
     }
 
@@ -196,6 +202,11 @@ body {
     }
     .active{
         font-weight: 700;
+        background-color: #d0e8ff; // light blue to indicate selection
+        color: #007bff; // emphasize active/selected feel
+        border-color: #007bff;
+        box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+        cursor: default;
         &:hover{
             cursor: pointer;
             background-color: lightgray;
