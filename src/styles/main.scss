@@ -61,9 +61,22 @@ body {
         }
         .eta{
             font-weight: 700;
-            color: blue;
+            color: darkblue;
         }
 
+    }
+
+    .main-hospital{
+        background-color: lightgray;
+
+        .hospital-name{
+            font-weight: 700;
+            color: darkred;
+        }
+        .eta{
+            font-weight: 700;
+            color: blue;
+        }
     }
 
 
@@ -78,3 +91,78 @@ body {
         width: 100%;
     }
 }
+
+
+
+  
+  .location-box{
+    margin: 1rem ; 
+    display: flex;
+    box-shadow: 0 0 .880517px rgba(0,0,0,.029),0 0 2.29197px rgba(0,0,0,.03),0 0 5.52px rgba(0,0,0,.054),0 0 11px rgba(0,0,0,.09);  
+    justify-content: center; /* center as a group */
+
+    .auto-location-box{
+        align-self: start;
+        display: grid;
+        gap:1rem;
+        margin: 1rem;
+        border: 2px dashed lightgray;
+        padding: 1rem;
+        p{
+            max-width: 150px;
+            font-size: 14px;
+            line-height: 1;
+            margin: 0;
+            text-align: center;
+        }
+    }
+    
+    .search-container{
+        display: grid;
+        grid-template-rows:  auto auto;
+        gap:1rem;
+        margin: 1rem;
+        border: 2px dashed lightgray;
+        padding: 1rem;
+        input{
+            height: 20px;
+            border-radius: 8px;
+            border: 1px solid lightgray;
+            padding-left: 8px;
+        }
+    }
+
+  }
+
+  .btn-location{
+        height: 2rem;
+  }
+
+  .geo-location{
+    display: flex;
+    justify-content: space-around;
+    margin-bottom: 10px;
+    button{
+        padding: 8px 16px;
+        font-size: 14px;
+        border: 1px solid #bbb;
+        background-color: #f5f5f5;
+        color: #333;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.2s ease-in-out;
+    }
+    .active{
+        font-weight: 700;
+    }
+    .not-active{
+        font-weight: 400;
+
+        background-color: #dcdcdc;
+        color: #777;
+        border-color: #ccc;
+        cursor: default;
+        font-weight: bold;
+        box-shadow: inset 0 0 2px rgba(0, 0, 0, 0.1);
+    }
+  }

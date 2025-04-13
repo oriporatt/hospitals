@@ -12,13 +12,19 @@ function getDistanceNM(lat1, lon1, lat2, lon2) {
 }
 
 const hospitals = [
-  { name: "Soroka", lat: 31.258281971116965, lon: 34.80028913558231 },
-  { name: "Tel-Hashomer", lat: 32.043345439740804, lon: 34.84204683608886 },
-  { name: "Ein-Kerem", lat: 31.76447466383605, lon: 35.14723853129529 },
-  { name: "Ichilov", lat: 32.07987031772444, lon: 34.789583962071234 },
-  { name: "Rambam", lat: 32.83544415349387, lon: 34.98589504575949},
-  { name: "Kaplan", lat: 31.87255050681198, lon: 34.811541692844486},
-  { name: "Beilinson", lat: 32.086786809182804, lon: 34.86508687629207},
+  { name: "Soroka",superH:true,geoSep:'S', lat: 31.258281971116965, lon: 34.80028913558231},
+  { name: "Tel-Hashomer",superH:true,geoSep:'C', lat: 32.043345439740804, lon: 34.84204683608886 },
+  { name: "Ein-Kerem",superH:true,geoSep:'B', lat: 31.76447466383605, lon: 35.14723853129529 },
+  { name: "Ichilov",superH:true,geoSep:'C', lat: 32.07987031772444, lon: 34.789583962071234 },
+  { name: "Rambam",superH:true,geoSep:'N', lat: 32.83544415349387, lon: 34.98589504575949},
+  { name: "Kaplan",superH:false,geoSep:'C', lat: 31.87255050681198, lon: 34.811541692844486},
+  { name: "Beilinson",superH:true, geoSep:'C', lat: 32.086786809182804, lon: 34.86508687629207},
+  { name: "Naharia",superH:false, geoSep:'N', lat: 33.01061747783171, lon: 35.11604851392026},
+  { name: "Ziv",superH:false, geoSep:'N', lat:32.95139765043419, lon: 35.11604851392026},
+  { name: "Emek",superH:false, geoSep:'N', lat: 32.61993274567445, lon: 35.31472510932093},
+  { name: "Yoseftal",superH:false, geoSep:'S', lat: 29.553838905613258, lon: 34.94147079967984},
+  { name: "Poria",superH:false, geoSep:'N', lat: 32.75405095314971, lon: 35.542539145154116},
+
 
 ];
 
@@ -27,9 +33,9 @@ export default function App() {
   const [location, setLocation] = useState(null);
   const [speed, setSpeed] = useState(120); // knots
   const [delay, setDelay] = useState(1); // delay in minutes
-  const [hospitalsArray, setHospitalsArray] = useState([]); // delay in minutes
-  const [loadingMap, setloadingMap] = useState(true); // delay in minutes
-
+  const [hospitalsArray, setHospitalsArray] = useState([]); 
+  const [loadingMap, setloadingMap] = useState(true); 
+  const [filterGeo, setFilterGeo] = useState('all'); 
 
 
   const [lastUpdated, setLastUpdated] = useState(null);
@@ -40,6 +46,8 @@ export default function App() {
   const mapInstanceRef = useRef(null);
   const markersRef = useRef([]);
   const linesRef = useRef([]);
+  const inputRef = useRef(null);
+  const [mode, setMode] = useState("gps");
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -48,28 +56,59 @@ export default function App() {
     return () => clearInterval(interval);
   }, []);
 
-  useEffect(()=>{
-    setHospitalsArray(renderHospitals())
+  useEffect(() => {
+    filterAndSetHospitals(location, filterGeo);
   }, [location]);
 
   useEffect(() => {
+    if (mode !== "gps") return; 
+  
     const getLocation = () => {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
           const { latitude, longitude } = pos.coords;
           setLocation({ lat: latitude, lon: longitude });
-          setLastUpdated(Date.now()); // <-- Add this line
-
+          setLastUpdated(Date.now());
         },
         (err) => console.error(err),
         { enableHighAccuracy: true }
       );
     };
-
+  
     getLocation();
     const interval = setInterval(getLocation, 10000);
     return () => clearInterval(interval);
-  }, []);
+  }, [mode]);
+
+
+  useEffect(() => {
+    if (!mapInstanceRef.current) return;
+  
+    const handleClick = (e) => {
+      if (mode === "manual") {
+        const lat = e.latLng.lat();
+        const lon = e.latLng.lng();
+        setLocation({ lat, lon });
+        mapInstanceRef.current.setCenter({ lat, lng: lon });
+      }
+    };
+  
+    // Always attach the listener
+    const listener = mapInstanceRef.current.addListener("click", handleClick);
+  
+    // Cleanup on unmount or mode change
+    return () => {
+      window.google.maps.event.removeListener(listener);
+    };
+  }, [mode]);
+
+
+  
+  useEffect(() => {
+    if (!mapInstanceRef.current || !location) return;
+    mapInstanceRef.current.panTo({ lat: location.lat, lng: location.lon });
+  }, [location]);
+  
 
   useEffect(() => {
     if (
@@ -98,57 +137,35 @@ export default function App() {
       if (!mapInstanceRef.current) {
         mapInstanceRef.current = new window.google.maps.Map(mapRef.current, {
           center: { lat: location.lat, lng: location.lon },
-          zoom: 10,
+          zoom: 8,
           mapTypeId: 'satellite', // 👈 ADD THIS LINE
           mapId: '5036d76f53ca6c6a'
         });
-  
-        // Add hospital markers (only once)
-        hospitals.forEach((h) => {
-          // Create a custom label div
-          const labelDiv = document.createElement('div');
-          labelDiv.innerText = h.name;
-          labelDiv.style.padding = '4px 6px';
-          labelDiv.style.backgroundColor = '#fff';
-          labelDiv.style.border = '1px solid #000';
-          labelDiv.style.borderRadius = '6px';
-          labelDiv.style.fontWeight = 'bold';
-          labelDiv.style.fontSize = '14px';
-          labelDiv.style.color = 'black';
-          labelDiv.style.whiteSpace = 'nowrap';
-          labelDiv.style.boxShadow = '0 2px 6px rgba(0,0,0,0.3)';
-        
-          const marker = new window.google.maps.marker.AdvancedMarkerElement({
-            map: mapInstanceRef.current,
-            position: { lat: h.lat, lng: h.lon },
-            title: h.name,
-            content: labelDiv,
+
+        if (inputRef.current) {
+          const autocomplete = new window.google.maps.places.Autocomplete(inputRef.current);
+          autocomplete.bindTo("bounds", mapInstanceRef.current);
+          autocomplete.addListener("place_changed", () => {
+            const place = autocomplete.getPlace();
+            if (place.geometry && place.geometry.location) {
+              const lat = place.geometry.location.lat();
+              const lon = place.geometry.location.lng();
+              mapInstanceRef.current.panTo({ lat, lng: lon }); // ✅ smooth transition
+              setLocation({ lat: lat, lon: lon });
+              setLastUpdated(Date.now()); // ✅ Reset the timer
+
+              if (mode==='gps'){
+                setMode("manual")              
+              }
+            }
           });
-        
-          markersRef.current.push(marker);
-        });
+        }
+
+
+
         
       }
-  
-      // Remove old lines if needed
-      linesRef.current.forEach((line) => line.setMap(null));
-      linesRef.current = [];
-  
-      // Add polyline to each hospital
-      hospitals.forEach((h) => {
-        const line = new window.google.maps.Polyline({
-          path: [
-            { lat: location.lat, lng: location.lon },
-            { lat: h.lat, lng: h.lon },
-          ],
-          geodesic: true,
-          strokeColor: "#00C853",
-          strokeOpacity: 1.0,
-          strokeWeight: 2,
-          map: mapInstanceRef.current,
-        });
-        linesRef.current.push(line);
-      });
+      
   
       // Update the current location marker
       if (!locationMarkerRef.current) {
@@ -179,6 +196,58 @@ export default function App() {
   }, [location]);
   
   
+  useEffect(() => {
+    if (!mapInstanceRef.current || !window.google?.maps?.marker?.AdvancedMarkerElement) return;
+
+    // 1. Clear old markers from map
+    markersRef.current.forEach(marker => marker.setMap(null));
+    markersRef.current = [];
+  
+    // 2. Add updated markers
+    hospitalsArray.forEach((h) => {
+      const labelDiv = document.createElement('div');
+      labelDiv.innerText = h.hospital;
+      labelDiv.style.padding = '4px 6px';
+      labelDiv.style.backgroundColor = '#fff';
+      labelDiv.style.border = '1px solid #000';
+      labelDiv.style.borderRadius = '6px';
+      labelDiv.style.fontWeight = 'bold';
+      labelDiv.style.fontSize = '14px';
+      labelDiv.style.color = 'black';
+      labelDiv.style.whiteSpace = 'nowrap';
+      labelDiv.style.boxShadow = '0 2px 6px rgba(0,0,0,0.3)';
+  
+      const marker = new window.google.maps.marker.AdvancedMarkerElement({
+        map: mapInstanceRef.current,
+        position: { lat: h.lat, lng: h.lon },
+        title: h.hospital,
+        content: labelDiv,
+      });
+
+      markersRef.current.push(marker);
+
+      linesRef.current.forEach((line) => line.setMap(null));
+      linesRef.current = [];
+  
+      // Add polyline to each hospital
+      hospitalsArray.forEach((h) => {
+        const line = new window.google.maps.Polyline({
+          path: [
+            { lat: location.lat, lng: location.lon },
+            { lat: h.lat, lng: h.lon },
+          ],
+          geodesic: true,
+          strokeColor: "#00C853",
+          strokeOpacity: 1.0,
+          strokeWeight: 2,
+          map: mapInstanceRef.current,
+        });
+        linesRef.current.push(line);
+      });
+  
+      
+    });
+  }, [hospitalsArray]);
   
 
   function renderHospitals () {
@@ -193,7 +262,11 @@ export default function App() {
       const thisRow = {
         hospital: h.name,
         distance: distance,
-        eta: 'ETA: '+  minutes+ ' min. '+ seconds +' sec.'
+        eta: 'ETA: '+  minutes+ ' min. '+ seconds +' sec.',
+        superH: h.superH,
+        geoSep: h.geoSep,
+        lat:h.lat,
+        lon: h.lon 
       }
       hospitalArray.push(thisRow)
      
@@ -201,6 +274,24 @@ export default function App() {
 
     return hospitalArray.sort((a,b)=>a.distance-b.distance);
   };
+
+    
+  function filterAndSetHospitals(location, filterGeo) {
+    if (!location) return;
+    const base = renderHospitals();
+  
+    if (filterGeo === 'north') {
+      setHospitalsArray(base.filter(h => h.geoSep === 'N' || h.geoSep === 'B' ));
+    } else if (filterGeo === 'south') {
+      setHospitalsArray(base.filter(h => h.geoSep === 'S' ||  h.geoSep === 'B'));
+    } else {
+      setHospitalsArray(base);
+    }
+  }
+  useEffect(() => {
+    filterAndSetHospitals(location, filterGeo);
+  }, [filterGeo]);
+  
 
   const getSecondsAgo = () => {
     if (!lastUpdated) return "";
@@ -240,10 +331,15 @@ export default function App() {
         <p>{getSecondsAgo()}</p>
       </div>
 
+      <div className="geo-location">
+        <button className={filterGeo==='all'? "active":"not-active"} onClick={()=>setFilterGeo('all')}>All</button>
+        <button className={filterGeo==='north'? "active":"not-active"} onClick={()=>setFilterGeo('north')}>North</button>
+        <button className={filterGeo==='south'? "active":"not-active"} onClick={()=>setFilterGeo('south')}>South</button>
+      </div>
       {hospitalsArray?.length>0 && (
         <ul className="hospital-list">
           {hospitalsArray.map((h, index) => (
-            <li key={index}>
+            <li key={index} className={`${h.hospital==='Soroka'||h.hospital==='Rambam'? 'main-hospital' : ''}`}>
               <p className="hospital-name">{h.hospital}</p>
               <p className="eta">{h.eta}</p>
               <p className="distance">{h.distance.toFixed(2)} NM</p>
@@ -254,6 +350,26 @@ export default function App() {
       )}
 
       {loadingMap&&<h2>Loading map..</h2>}
+      <div className="location-box">
+        <div className="auto-location-box" >
+          <button className="btn-location" onClick={() => setMode("gps")} disabled={mode === "gps"}>
+            Use My Location
+          </button>
+          <p>Use live location, update every 10 sec</p>
+        </div>
+        <div className="search-container">
+          <button className="btn-location" onClick={() => setMode("manual")} disabled={mode === "manual"}>
+            Set Location Manually
+          </button>
+          <input
+            ref={inputRef}
+            type="text"
+            placeholder="Search a location..."
+            className="search-box"
+          />
+        </div>
+      </div>
+
       <div className="map-hospitals">
         <div ref={mapRef} className="google-map" />
       </div>
